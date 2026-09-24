@@ -1,88 +1,61 @@
-import { FormEvent, useMemo, useState } from "react";
-import { ArrowRight, Eye, EyeOff, Search, ShieldCheck } from "lucide-react";
+import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Globe2, LockKeyhole, Search, ShieldCheck, Sparkles, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { startLogin } from "@/const";
 import { canContinueWithInterests, filterInterests, toggleInterestSelection } from "@/lib/trendx";
 
-type Mode = "login" | "signup" | "interests" | "dashboard";
-type Category = "All" | "Education" | "Technology" | "Career" | "Lifestyle";
-type Interest = { label: string; category: Exclude<Category, "All"> };
+type View = "auth" | "topics" | "platforms" | "feed";
+type AuthMode = "login" | "signup";
+type Topic = { label: string; detail: string; group: string; icon: string };
+type Platform = { name: string; handle: string; detail: string; color: string };
 
-const interests: Interest[] = [
-  { label: "Sports", category: "Lifestyle" }, { label: "Technology", category: "Technology" },
-  { label: "Artificial Intelligence", category: "Technology" }, { label: "Coding", category: "Technology" },
-  { label: "Cybersecurity", category: "Technology" }, { label: "Startups", category: "Career" },
-  { label: "Business", category: "Career" }, { label: "Finance", category: "Career" },
-  { label: "Career Development", category: "Career" }, { label: "Competitive Exams", category: "Education" },
-  { label: "UPSC", category: "Education" }, { label: "JEE", category: "Education" },
-  { label: "NEET", category: "Education" }, { label: "Science", category: "Education" },
-  { label: "Health", category: "Lifestyle" }, { label: "Entertainment", category: "Lifestyle" },
-  { label: "Music", category: "Lifestyle" }, { label: "Travel", category: "Lifestyle" },
-  { label: "Books", category: "Lifestyle" }, { label: "News", category: "Lifestyle" },
+const topics: Topic[] = [
+  { label: "AI & Technology", detail: "Tools, models and breakthroughs", group: "Build", icon: "✦" },
+  { label: "Competitive Exams", detail: "UPSC, JEE, NEET and more", group: "Learn", icon: "⌁" },
+  { label: "Startups & Business", detail: "Founders, products and markets", group: "Build", icon: "↗" },
+  { label: "Sports", detail: "Scores, stories and hot takes", group: "Live", icon: "◒" },
+  { label: "Health & Wellness", detail: "Better habits and new research", group: "Live", icon: "♡" },
+  { label: "Finance & Investing", detail: "Markets, money and fintech", group: "Build", icon: "₹" },
+  { label: "News & Current Affairs", detail: "What is changing around you", group: "Live", icon: "◉" },
+  { label: "Gaming & Entertainment", detail: "Games, movies, music and culture", group: "Live", icon: "▸" },
+  { label: "Science & Space", detail: "Research, discovery and the unknown", group: "Learn", icon: "◎" },
+  { label: "Coding & Design", detail: "The craft behind digital products", group: "Build", icon: "</>" },
+  { label: "Climate & Environment", detail: "A closer look at our planet", group: "Live", icon: "☼" },
+  { label: "Career & Productivity", detail: "Work smarter, grow further", group: "Learn", icon: "✓" },
 ];
 
-function Logo() {
-  return <div className="simple-logo"><span>↗</span> TrendX</div>;
-}
+const platforms: Platform[] = [
+  { name: "X", handle: "x.com", detail: "Posts, replies, reposts and hashtags", color: "#e7ecf5" },
+  { name: "Telegram", handle: "telegram.org", detail: "Channels, groups and discussions", color: "#49b7e8" },
+  { name: "Reddit", handle: "reddit.com", detail: "Communities, threads and comments", color: "#ff6b46" },
+  { name: "Facebook", handle: "facebook.com", detail: "Pages, groups and public conversations", color: "#5b7ff0" },
+  { name: "Instagram", handle: "instagram.com", detail: "Creators, captions and public comments", color: "#e568a5" },
+  { name: "YouTube", handle: "youtube.com", detail: "Channels, comments and video trends", color: "#ff4c4c" },
+];
 
-function AuthPage({ mode, setMode }: { mode: "login" | "signup"; setMode: (mode: Mode) => void }) {
+function Logo() { return <div className="signal-logo"><span>↗</span><b>TrendX</b><small>signal intelligence</small></div>; }
+function GoogleMark() { return <span className="google-mark">G</span>; }
+
+function Auth({ mode, setMode, onSuccess }: { mode: AuthMode; setMode: (mode: AuthMode) => void; onSuccess: (name: string) => void }) {
   const signup = mode === "signup";
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [accepted, setAccepted] = useState(false);
-  const [error, setError] = useState("");
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    setError("");
-    if (!email.trim() || !password.trim() || (signup && !name.trim())) {
-      setError("Please fill in all required fields."); return;
-    }
-    if (signup && password.length < 8) {
-      setError("Password must be at least 8 characters."); return;
-    }
-    if (signup && password !== confirm) {
-      setError("Passwords do not match."); return;
-    }
-    if (signup && !accepted) {
-      setError("Please accept the terms to continue."); return;
-    }
-    if (signup) {
-      window.localStorage.setItem("trendx-profile", name);
-      toast.success("Account created successfully.");
-      setMode("interests");
-    } else {
-      toast.success("Signed in successfully.");
-      setMode("dashboard");
-    }
-  };
-
-  return <div className="simple-page"><header className="simple-header"><Logo /><span className="header-help">Personalized trends, made simple</span></header><main className="auth-main"><section className="simple-intro"><span className="simple-label">WELCOME TO TRENDX</span><h1>Discover what<br /><strong>matters to you.</strong></h1><p>Choose your interests and get a simple, personalized feed of trends, ideas, and opportunities.</p><div className="intro-list"><span>✓ Personalized updates</span><span>✓ Topics you care about</span><span>✓ One simple place to explore</span></div></section><section className="simple-card"><div className="card-heading"><h2>{signup ? "Create an account" : "Welcome back"}</h2><p>{signup ? "Start building your personalized feed." : "Sign in to continue to TrendX."}</p></div><p className="account-switch">{signup ? "Already have an account?" : "New to TrendX?"} <button onClick={() => setMode(signup ? "login" : "signup")}>{signup ? "Sign in" : "Sign up"}</button></p><button className="google-button" onClick={() => { toast.info("Opening Google sign-in…"); startLogin(); }}><span className="google-letter">G</span> Continue with Google</button><div className="or-divider"><span>or</span></div><form onSubmit={submit}>{signup && <label>Full name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" /></label>}<label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></label><label>Password<span className="password-input"><input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Toggle password visibility">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></span></label>{signup && <label>Confirm password<input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat your password" /></label>}{signup && <label className="check-row"><input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} /> I agree to the Terms and Privacy Policy</label>}{!signup && <button type="button" className="forgot" onClick={() => toast.info("Password recovery will be connected later.")}>Forgot password?</button>}{error && <p className="error-message">{error}</p>}<button className="primary-button" type="submit">{signup ? "Create account" : "Sign in"} <ArrowRight size={16} /></button></form><p className="secure-line"><ShieldCheck size={14} /> Your information is kept secure</p></section></main><footer className="simple-footer">© 2026 TrendX · Help · Privacy</footer></div>;
+  const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [confirm, setConfirm] = useState(""); const [showPassword, setShowPassword] = useState(false); const [accepted, setAccepted] = useState(false); const [error, setError] = useState("");
+  const submit = (event: FormEvent) => { event.preventDefault(); setError(""); if (!email || !password || (signup && !name)) return setError("Please complete the required fields."); if (signup && password.length < 8) return setError("Use at least 8 characters for your password."); if (signup && password !== confirm) return setError("Passwords do not match."); if (signup && !accepted) return setError("Please accept the terms to continue."); const finalName = signup ? name : (email.split("@")[0] || "Explorer"); window.localStorage.setItem("trendx-profile", finalName); toast.success(signup ? "Account created." : "Welcome back."); onSuccess(finalName); };
+  return <div className="auth-screen"><div className="auth-glow auth-glow-a" /><div className="auth-glow auth-glow-b" /><header className="topbar"><Logo /><span className="topbar-note"><ShieldCheck size={14} /> Private by default</span></header><main className="auth-layout"><section className="auth-pitch"><div className="eyebrow"><span className="live-dot" /> YOUR SIGNAL, NOT THE NOISE</div><h1>See what is<br /><em>moving.</em></h1><p>TrendX watches the conversations that matter to you and brings the clearest signals into one focused feed.</p><div className="pitch-lines"><span><b>01</b> Discover emerging topics</span><span><b>02</b> Compare conversations across platforms</span><span><b>03</b> Stay ahead without scrolling all day</span></div><div className="mini-network" aria-hidden="true"><i /><i /><i /><i /><span>your signal</span></div></section><section className="auth-panel"><div className="auth-panel-head"><span className="eyebrow">{signup ? "CREATE YOUR PROFILE" : "WELCOME BACK"}</span><h2>{signup ? "Start with your signal." : "Pick up your signal."}</h2><p>{signup ? "A few details, then we will tune TrendX to you." : "Sign in and continue exploring what matters."}</p></div><p className="switch-copy">{signup ? "Already have an account?" : "New to TrendX?"} <button onClick={() => { setMode(signup ? "login" : "signup"); setError(""); }}>{signup ? "Sign in" : "Create an account"}</button></p><button className="oauth-button" onClick={() => { toast.info("Opening secure Google sign-in…"); startLogin(); }}><GoogleMark /> Continue with Google <ArrowRight size={15} /></button><div className="auth-divider"><span>or continue with email</span></div><form onSubmit={submit}>{signup && <label>Full name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Ananya Sharma" /></label>}<label>Email or username<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></label><label>Password<span className="password-wrap"><LockKeyhole size={15} /><input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" /><button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></span></label>{signup && <label>Confirm password<input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repeat your password" /></label>}{signup && <label className="check-line"><input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} /> I agree to the Terms and Privacy Policy</label>}{!signup && <button className="forgot-link" type="button" onClick={() => toast.info("Password recovery will be connected to the auth provider.")}>Forgot password?</button>}{error && <p className="error-box">{error}</p>}<button className="primary-button" type="submit">{signup ? "Create my account" : "Sign in to TrendX"} <ArrowRight size={16} /></button></form><p className="auth-trust"><ShieldCheck size={13} /> Your information is encrypted and never sold.</p></section></main></div>;
 }
 
-function InterestsPage({ setMode }: { setMode: (mode: Mode) => void }) {
-  const [category, setCategory] = useState<Category>("All");
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const filtered = useMemo(() => filterInterests(interests, category, query), [category, query]);
-  const toggle = (label: string) => setSelected((current) => toggleInterestSelection(current, label));
+function StepHeader({ step, title, subtitle }: { step: number; title: ReactNode; subtitle: string }) { return <><div className="setup-meta"><span>SETUP 0{step} / 02</span><div className="setup-track"><i style={{ width: `${step * 50}%` }} /></div><span>{step === 1 ? "TOPICS" : "PLATFORMS"}</span></div><h1 className="setup-title">{title}</h1><p className="setup-subtitle">{subtitle}</p></>; }
 
-  return <div className="simple-page"><header className="simple-header"><Logo /><button className="skip-link" onClick={() => setMode("dashboard")}>Skip for now</button></header><main className="onboarding-main"><div className="onboarding-heading"><span className="simple-label">STEP 1 OF 1</span><h1>Choose your interests</h1><p>Select at least three topics to personalize your TrendX feed.</p></div><div className="interest-controls"><div className="category-buttons">{(["All", "Education", "Technology", "Career", "Lifestyle"] as Category[]).map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div><label className="search-box"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search interests" /></label></div><p className="selected-count">{selected.length} selected {selected.length < 3 && "· Select at least 3"}</p><div className="basic-interest-grid">{filtered.map((interest) => <button key={interest.label} className={selected.includes(interest.label) ? "selected" : ""} onClick={() => toggle(interest.label)}>{selected.includes(interest.label) ? "✓ " : "+ "}{interest.label}</button>)}</div><div className="onboarding-footer"><span>Selected interests help us show better recommendations.</span><button className="primary-button" onClick={() => { if (!canContinueWithInterests(selected)) { toast.error("Please select at least three interests."); return; } window.localStorage.setItem("trendx-interests", JSON.stringify(selected)); setMode("dashboard"); }}>Continue <ArrowRight size={16} /></button></div></main></div>;
+function Topics({ onNext, onBack }: { onNext: (items: string[]) => void; onBack: () => void }) {
+  const [category, setCategory] = useState("All"); const [query, setQuery] = useState(""); const [selected, setSelected] = useState<string[]>([]);
+  const visible = useMemo(() => filterInterests(topics.map((t) => ({ ...t, category: t.group })), category, query), [category, query]);
+  return <div className="setup-screen"><header className="topbar setup-topbar"><Logo /><button className="exit-button" onClick={onBack}><X size={15} /> Exit setup</button></header><main className="setup-wrap"><StepHeader step={1} title={<>What should TrendX<br /><em>watch for you?</em></>} subtitle="Choose at least three topics. We will look for useful signals, not just popular noise." /><div className="setup-tools"><div className="filter-tabs">{["All", "Learn", "Build", "Live"].map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div><label className="search-input"><Search size={15} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search topics" />{query && <button onClick={() => setQuery("")}><X size={14} /></button>}</label></div><div className="setup-count"><span><b>{selected.length}</b> topics selected</span><small>{selected.length < 3 ? "Choose at least three to continue" : "Your signal is taking shape"}</small></div><div className="topic-grid">{visible.map((topic) => <button key={topic.label} className={`topic-card ${selected.includes(topic.label) ? "selected" : ""}`} onClick={() => setSelected((current) => toggleInterestSelection(current, topic.label))}><span className="topic-icon">{topic.icon}</span><span><b>{topic.label}</b><small>{topic.detail}</small></span><i>{selected.includes(topic.label) ? <Check size={14} /> : <ArrowRight size={14} />}</i></button>)}</div><div className="setup-footer"><button className="back-button" onClick={onBack}><ArrowLeft size={15} /> Back</button><button className="primary-button next-button" onClick={() => { if (!canContinueWithInterests(selected)) return toast.error("Select at least three topics first."); onNext(selected); }}>Continue to platforms <ArrowRight size={16} /></button></div></main></div>;
 }
 
-function Dashboard({ setMode }: { setMode: (mode: Mode) => void }) {
-  const name = window.localStorage.getItem("trendx-profile")?.split(" ")[0] || "there";
-  const selected = (() => { try { return JSON.parse(window.localStorage.getItem("trendx-interests") || "[]") as string[]; } catch { return []; } })();
-  const topics = selected.length ? selected : ["Technology", "Sports", "News"];
-  return <div className="simple-page"><header className="simple-header"><Logo /><button className="skip-link" onClick={() => setMode("interests")}>Edit interests</button></header><main className="dashboard-simple"><span className="simple-label">YOUR TRENDX FEED</span><h1>Hello, {name}.</h1><p className="dashboard-subtitle">Here are a few topics picked for you.</p><div className="topic-row">{topics.map((topic) => <span key={topic}>{topic}</span>)}</div><section className="basic-feed"><article><span>TECHNOLOGY</span><h2>What is trending in technology today?</h2><p>Explore the latest ideas, tools, and news from the world of technology.</p><button onClick={() => toast.info("Content feed will be connected next.")}>Read more <ArrowRight size={15} /></button></article><article><span>YOUR INTERESTS</span><h2>Keep your feed relevant</h2><p>Add or remove interests anytime to improve your recommendations.</p><button onClick={() => setMode("interests")}>Update interests <ArrowRight size={15} /></button></article></section></main></div>;
+function Platforms({ selectedTopics, onBack, onNext }: { selectedTopics: string[]; onBack: () => void; onNext: (items: string[]) => void }) {
+  const [selected, setSelected] = useState<string[]>(["X", "Telegram"]);
+  return <div className="setup-screen"><header className="topbar setup-topbar"><Logo /><button className="exit-button" onClick={onBack}><X size={15} /> Exit setup</button></header><main className="setup-wrap platform-wrap"><StepHeader step={2} title={<>Where should we<br /><em>listen in?</em></>} subtitle="Pick the public platforms you want TrendX to monitor for your selected topics." /><div className="selected-summary"><span className="summary-label">WATCHING FOR</span>{selectedTopics.slice(0, 4).map((topic) => <span key={topic}>{topic}</span>)}{selectedTopics.length > 4 && <span>+{selectedTopics.length - 4}</span>}</div><div className="platform-grid">{platforms.map((platform) => <button key={platform.name} className={`platform-card ${selected.includes(platform.name) ? "selected" : ""}`} onClick={() => setSelected((current) => toggleInterestSelection(current, platform.name))}><span className="platform-logo" style={{ color: platform.color }}>{platform.name.charAt(0)}</span><span className="platform-copy"><b>{platform.name}</b><small>{platform.detail}</small><em>{platform.handle}</em></span><span className="platform-check">{selected.includes(platform.name) ? <Check size={15} /> : <span />}</span></button>)}</div><div className="setup-footer"><button className="back-button" onClick={onBack}><ArrowLeft size={15} /> Back to topics</button><button className="primary-button next-button" onClick={() => { if (!selected.length) return toast.error("Choose at least one platform."); window.localStorage.setItem("trendx-platforms", JSON.stringify(selected)); onNext(selected); }}>Build my feed <Sparkles size={16} /></button></div></main></div>;
 }
 
-export default function Home() {
-  const [mode, setMode] = useState<Mode>("login");
-  if (mode === "interests") return <InterestsPage setMode={setMode} />;
-  if (mode === "dashboard") return <Dashboard setMode={setMode} />;
-  return <AuthPage mode={mode} setMode={setMode} />;
-}
+function Feed({ topics: selectedTopics, platforms: selectedPlatforms, onEdit }: { topics: string[]; platforms: string[]; onEdit: () => void }) { const name = window.localStorage.getItem("trendx-profile")?.split(" ")[0] || "Explorer"; return <div className="feed-screen"><header className="topbar feed-topbar"><Logo /><nav><button className="active">My feed</button><button onClick={onEdit}>Topics</button><button onClick={() => toast.info("Saved signals are coming next.")}>Saved</button></nav><div className="feed-actions"><button onClick={() => toast.info("You are all caught up.")}>◌</button><span className="feed-avatar">{name.charAt(0)}</span></div></header><main className="feed-wrap"><div className="feed-welcome"><div><span className="eyebrow"><span className="live-dot" /> LIVE SIGNAL BOARD</span><h1>Good morning, {name}.</h1><p>Here is what is moving across the conversations you chose.</p></div><button className="edit-button" onClick={onEdit}>Tune my feed <Zap size={14} /></button></div><div className="feed-chips"><div><small>TOPICS</small>{selectedTopics.map((item) => <span key={item}>{item}</span>)}</div><div><small>MONITORING</small>{selectedPlatforms.map((item) => <span key={item}>{item}</span>)}</div></div><section className="signal-banner"><div><span className="eyebrow">TODAY'S SIGNAL</span><h2>Conversations are<br /><em>moving faster than usual.</em></h2><p>TrendX found rising activity across your topics. Start with the clearest signals below.</p></div><div className="signal-score"><span>signal score</span><b>08.4</b><small>↑ 24% today</small></div></section><div className="feed-heading"><h2>Worth your attention</h2><button onClick={() => toast.info("Explore view is coming soon.")}>See all <ArrowRight size={14} /></button></div><div className="feed-grid"><article><span className="feed-tag blue">EMERGING TOPIC</span><h3>AI conversations are spreading into new communities</h3><p>Mentions are growing across {selectedPlatforms.slice(0, 2).join(" and ")}. The discussion is shifting from tools to real-world use.</p><button onClick={() => toast.info("Signal details are coming soon.")}>View signal <ArrowRight size={14} /></button></article><article><span className="feed-tag coral">TRENDING NOW</span><h3>Your interests are starting to connect</h3><p>TrendX sees overlap between {selectedTopics.slice(0, 2).join(" and ")}. This could become a useful new signal for you.</p><button onClick={() => toast.info("Signal details are coming soon.")}>Explore connection <ArrowRight size={14} /></button></article></div><div className="feed-note"><ShieldCheck size={16} /><span><b>Built around your choices.</b> Your feed only monitors the topics and platforms you selected.</span></div></main></div>; }
+
+export default function Home() { const [view, setView] = useState<View>("auth"); const [authMode, setAuthMode] = useState<AuthMode>("login"); const [selectedTopics, setSelectedTopics] = useState<string[]>([]); const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["X", "Telegram"]); if (view === "topics") return <Topics onBack={() => setView("auth")} onNext={(items) => { setSelectedTopics(items); setView("platforms"); }} />; if (view === "platforms") return <Platforms selectedTopics={selectedTopics} onBack={() => setView("topics")} onNext={(items) => { setSelectedPlatforms(items); setView("feed"); }} />; if (view === "feed") return <Feed topics={selectedTopics} platforms={selectedPlatforms} onEdit={() => setView("topics")} />; return <Auth mode={authMode} setMode={setAuthMode} onSuccess={() => setView("topics")} />; }
